@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>아오모리 일정 지도</title>
 
-  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -52,11 +51,6 @@
       background: #fff;
     }
 
-    .leaflet-popup-content {
-      font-size: 14px;
-      line-height: 1.5;
-    }
-
     .legend {
       margin-top: 14px;
       padding: 14px 16px;
@@ -71,28 +65,29 @@
     .legend strong {
       color: #111;
     }
+
+    .leaflet-popup-content {
+      font-size: 14px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>아오모리 · 도와다 · 하코다테 일정 지도</h1>
-    <p class="desc">
-      간단 일정표 기준 이동 동선을 표시한 지도입니다.
-    </p>
+    <p class="desc">간단 일정표 기준 이동 동선입니다.</p>
 
     <div id="map"></div>
 
     <div class="legend">
       <strong>일정 요약</strong><br>
-      1일: 인천 → 아오모리<br>
       2일: 아오모리<br>
       3일: 아오모리 → 도와다 → 아오모리<br>
       4일: 아오모리 → 하코다테<br>
-      5일: 하코다테 → 인천
+      5일: 하코다테 출발
     </div>
   </div>
 
-  <!-- Leaflet JS -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -100,20 +95,13 @@
   ></script>
 
   <script>
-    // 주요 지점 좌표
+    // 주요 지점
     const locations = [
-      {
-        name: "인천",
-        lat: 37.4602,
-        lng: 126.4407,
-        day: "1일 / 5일",
-        note: "출발 및 귀국"
-      },
       {
         name: "아오모리",
         lat: 40.8222,
         lng: 140.7474,
-        day: "1~4일",
+        day: "2~4일",
         note: "주요 숙박 및 이동 거점"
       },
       {
@@ -128,30 +116,18 @@
         lat: 41.7688,
         lng: 140.7288,
         day: "4~5일",
-        note: "이동 후 귀국 출발"
+        note: "이동 후 귀국 출발지"
       }
     ];
 
-    // 실제 이동 순서 기준 라우트
-    const route = [
-      [37.4602, 126.4407], // 인천
-      [40.8222, 140.7474], // 아오모리
-      [40.6121, 141.2057], // 도와다
-      [40.8222, 140.7474], // 아오모리 복귀
-      [41.7688, 140.7288], // 하코다테
-      [37.4602, 126.4407]  // 인천 귀국
-    ];
-
-    // 지도 생성
     const map = L.map('map');
 
-    // 배경 지도
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OpenStreetMap contributors &copy; CartoDB'
     }).addTo(map);
 
-    // 마커 스타일용 커스텀 원형 아이콘 대체
-    locations.forEach((loc, index) => {
+    // 도시 마커
+    locations.forEach((loc) => {
       const marker = L.circleMarker([loc.lat, loc.lng], {
         radius: 9,
         color: '#0f5fa8',
@@ -167,20 +143,48 @@
       `);
     });
 
-    // 이동선
-    const polyline = L.polyline(route, {
+    // 3일차: 아오모리 ↔ 도와다 (골드)
+    const routeTowada = [
+      [40.8222, 140.7474], // 아오모리
+      [40.6121, 141.2057], // 도와다
+      [40.8222, 140.7474]  // 아오모리 복귀
+    ];
+
+    const lineTowada = L.polyline(routeTowada, {
       color: '#c59a3d',
       weight: 4,
-      opacity: 0.9
+      opacity: 0.95
     }).addTo(map);
 
-    // 날짜별 라벨 마커
+    // 4일차: 아오모리 → 하코다테 (흰색)
+    const routeHakodate = [
+      [40.8222, 140.7474], // 아오모리
+      [41.7688, 140.7288]  // 하코다테
+    ];
+
+    const lineHakodate = L.polyline(routeHakodate, {
+      color: '#ffffff',
+      weight: 5,
+      opacity: 1
+    }).addTo(map);
+
+    // 흰색 선이 지도에서 더 잘 보이도록 외곽선 하나 추가
+    const lineHakodateOutline = L.polyline(routeHakodate, {
+      color: '#8a8a8a',
+      weight: 7,
+      opacity: 0.35
+    }).addTo(map);
+
+    // 외곽선을 뒤로 보내고 흰 선을 앞으로
+    lineHakodateOutline.bringToBack();
+    lineTowada.bringToFront();
+    lineHakodate.bringToFront();
+
+    // 일자 라벨
     const dayPoints = [
-      { lat: 40.8222, lng: 140.7474, label: "1일", text: "인천 → 아오모리" },
       { lat: 40.8222, lng: 140.7474, label: "2일", text: "아오모리" },
       { lat: 40.6121, lng: 141.2057, label: "3일", text: "아오모리 → 도와다 → 아오모리" },
-      { lat: 41.7688, lng: 140.7288, label: "4일", text: "아오모리 → 하코다테" },
-      { lat: 37.4602, lng: 126.4407, label: "5일", text: "하코다테 → 인천" }
+      { lat: 41.7688, lng: 140.7288, label: "4-5일", text: "아오모리 → 하코다테" }
     ];
 
     dayPoints.forEach(point => {
@@ -201,14 +205,18 @@
               ${point.label}
             </div>
           `,
-          iconSize: [50, 24],
-          iconAnchor: [25, 12]
+          iconSize: [60, 24],
+          iconAnchor: [30, 12]
         })
       }).addTo(map).bindPopup(`<strong>${point.label}</strong><br>${point.text}`);
     });
 
-    // 화면에 전체 경로 맞추기
-    map.fitBounds(polyline.getBounds(), {
+    // 화면 범위 맞추기
+    const group = L.featureGroup([lineTowada, lineHakodate, ...locations.map(loc =>
+      L.marker([loc.lat, loc.lng])
+    )]);
+
+    map.fitBounds(group.getBounds(), {
       padding: [60, 60]
     });
   </script>
